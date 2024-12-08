@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redstone Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #1e1e1e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            margin: 10px;
+        }
+        #controls {
+            margin: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #444;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            grid-template-rows: repeat(10, 50px);
+            gap: 2px;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            background-color: #3e3e3e;
+            border: 1px solid #2b2b2b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .redstone {
+            width: 80%;
+            height: 80%;
+            background-color: red;
+            border-radius: 50%;
+        }
+        .torch {
+            width: 20%;
+            height: 80%;
+            background-color: orange;
+        }
+        .block {
+            width: 80%;
+            height: 80%;
+            background-color: #6b4b3e;
+        }
+        .piston {
+            width: 80%;
+            height: 80%;
+            background-color: #999;
+            border: 2px solid #666;
+        }
+        .lever {
+            width: 50%;
+            height: 10%;
+            background-color: green;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .button {
+            width: 40%;
+            height: 20%;
+            background-color: #bbb;
+            border: 1px solid #888;
+        }
+        .repeater,
+        .comparator {
+            width: 80%;
+            height: 30%;
+            background-color: #555;
+        }
+        .active {
+            background-color: lime;
+        }
+    </style>
+</head>
+<body>
+    <h1>Redstone Simulator</h1>
+    <div id="controls">
+        <button onclick="selectTool('redstone')">Redstone Dust</button>
+        <button onclick="selectTool('torch')">Redstone Torch</button>
+        <button onclick="selectTool('block')">Redstone Block</button>
+        <button onclick="selectTool('piston')">Piston</button>
+        <button onclick="selectTool('lever')">Lever</button>
+        <button onclick="selectTool('button')">Button</button>
+        <button onclick="selectTool('repeater')">Repeater</button>
+        <button onclick="selectTool('comparator')">Comparator</button>
+        <button onclick="clearGrid()">Clear Grid</button>
+    </div>
+    <div id="grid"></div>
+
+    <script>
+        const grid = document.getElementById("grid");
+        const rows = 10;
+        const cols = 10;
+        let selectedTool = "redstone";
+
+        // Create grid
+        for (let i = 0; i < rows * cols; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            cell.addEventListener("click", () => placeItem(cell));
+            grid.appendChild(cell);
+        }
+
+        // Select tool
+        function selectTool(tool) {
+            selectedTool = tool;
+            alert(`Selected tool: ${tool}`);
+        }
+
+        // Place or interact with item
+        function placeItem(cell) {
+            if (cell.firstChild) {
+                if (selectedTool === "lever") toggleLever(cell);
+                if (selectedTool === "button") pressButton(cell);
+                return;
+            }
+
+            const item = document.createElement("div");
+            item.classList.add(selectedTool);
+
+            cell.appendChild(item);
+
+            if (selectedTool === "torch" || selectedTool === "block") {
+                activateRedstone(cell);
+            }
+        }
+
+        // Toggle lever
+        function toggleLever(cell) {
+            const lever = cell.firstChild;
+            if (lever.classList.contains("active")) {
+                lever.classList.remove("active");
+                deactivateRedstone(cell);
+            } else {
+                lever.classList.add("active");
+                activateRedstone(cell);
+            }
+        }
+
+        // Press button (temporary activation)
+        function pressButton(cell) {
+            const button = cell.firstChild;
+            button.classList.add("active");
+            activateRedstone(cell);
+            setTimeout(() => {
+                button.classList.remove("active");
+                deactivateRedstone(cell);
+            }, 1000);
+        }
+
+        // Activate redstone around a cell
+        function activateRedstone(cell) {
+            const index = Array.from(grid.children).indexOf(cell);
+            const neighbors = getNeighbors(index);
+
+            neighbors.forEach((i) => {
+                const neighbor = grid.children[i];
+                if (neighbor && neighbor.firstChild && neighbor.firstChild.classList.contains("redstone")) {
+                    neighbor.firstChild.classList.add("active");
+                }
+            });
+        }
+
+        // Deactivate redstone around a cell
+        function deactivateRedstone(cell) {
+            const index = Array.from(grid.children).indexOf(cell);
+            const neighbors = getNeighbors(index);
+
+            neighbors.forEach((i) => {
+                const neighbor = grid.children[i];
+                if (neighbor && neighbor.firstChild && neighbor.firstChild.classList.contains("redstone")) {
+                    neighbor.firstChild.classList.remove("active");
+                }
+            });
+        }
+
+        // Get neighboring cell indices
+        function getNeighbors(index) {
+            const neighbors = [];
+            const isLeftEdge = index % cols === 0;
+            const isRightEdge = (index + 1) % cols === 0;
+
+            if (index - cols >= 0) neighbors.push(index - cols); // Top
+            if (index + cols < rows * cols) neighbors.push(index + cols); // Bottom
+            if (!isLeftEdge) neighbors.push(index - 1); // Left
+            if (!isRightEdge) neighbors.push(index + 1); // Right
+
+            return neighbors;
+        }
+
+        // Clear grid
+        function clearGrid() {
+            Array.from(grid.children).forEach((cell) => (cell.innerHTML = ""));
+        }
+    </script>
+</body>
+</html>
